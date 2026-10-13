@@ -11,7 +11,7 @@
     "details": [
       "Build MVPs for portfolio companies, bringing LLMs and ML models into full-stack apps from prototype to release."
     ],
-    "featured": true
+    "tags": ["Full-stack SWE", "Business Development", "AI"]
   },
   {
     "id": "rbc-investment-analyst",
@@ -26,7 +26,7 @@
       "Wrote annual performance reviews for $1.1B of committed capital across 12+ real estate and infrastructure equity funds.",
       "Co-built the diligence framework used to screen 20+ managers for $1B of CLO, infrastructure debt and infrastructure equity mandates."
     ],
-    "featured": true
+    "tags": ["Private Markets", "Fund Due Diligence", "Real Assets", "Private Credit"]
   },
   {
     "id": "rbc-actuarial-analyst",
@@ -41,7 +41,7 @@
       "Modelled liability cash flows, key rate durations and convexity in Pandas to strengthen duration matching.",
       "Automated recurring asset-liability workflows in Python with the Bloomberg API."
     ],
-    "featured": false
+    "tags": ["Asset-Liability Management", "Fixed Income", "Python", "Bloomberg API"]
   },
   {
     "id": "uw-finance-association",
@@ -53,7 +53,7 @@
     "organisation": "University of Waterloo Finance Association",
     "location": "Waterloo, ON",
     "details": [],
-    "featured": false
+    "tags": ["Equity Research", "Valuation", "Markets"]
   },
   {
     "id": "double-degree-club",
@@ -65,7 +65,7 @@
     "organisation": "Waterloo/Laurier Double Degree Club",
     "location": "Waterloo, ON",
     "details": [],
-    "featured": false
+    "tags": ["Leadership", "Community Building", "Events"]
   },
   {
     "id": "korn-ferry",
@@ -79,7 +79,7 @@
     "details": [
       "Ran HR due diligence for the cross-border acquisition of a content startup valued at $500M."
     ],
-    "featured": false
+    "tags": ["M&A Due Diligence", "Organizational Consulting", "Cross-border Deals"]
   },
   {
     "id": "aleph-lab",
@@ -94,7 +94,7 @@
       "Built a macOS AI agent in Swift and Python that operates the computer through the Accessibility API, driven by a Gemini vision-and-action loop.",
       "Pitched to enterprises and VCs across the US, Europe and Asia; the company was valued at $1M."
     ],
-    "featured": true
+    "tags": ["Founder", "AI Agents", "Swift", "Fundraising"]
   },
   {
     "id": "rok-army",
@@ -109,7 +109,7 @@
       "Built an Excel VBA dashboard that cut subordinate units’ response times by 40%.",
       "Led a squad of 10+ soldiers in the battalion Fire Direction Center; received the Brigadier General Commendation twice."
     ],
-    "featured": false
+    "tags": ["Leadership", "Operations", "Excel VBA", "Fire Direction"]
   },
   {
     "id": "hanwha-life",
@@ -124,6 +124,6 @@
       "Underwrote private equity deals up to $100M with financial models and analysis of filings and sell-side reports.",
       "Wrote investment memos on companies in the energy and financial software sectors."
     ],
-    "featured": false
+    "tags": ["Private Equity", "Financial Modelling", "Investment Memos"]
   }
 ]

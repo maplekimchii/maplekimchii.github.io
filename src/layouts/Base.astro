@@ -25,7 +25,9 @@ const showThoughts = (await getPosts()).length > 0;
     <link rel="canonical" href={canonical} />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="preload" href="/fonts/archivo-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fonts/archivo-latin-500-normal.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="preload" href="/fonts/archivo-latin-800-normal.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fonts/ibm-plex-mono-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="preload" href="/fonts/ibm-plex-mono-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin />
     <meta name="theme-color" content="#71cbeb" />
     <meta property="og:type" content="website" />
@@ -41,11 +43,14 @@ const showThoughts = (await getPosts()).length > 0;
   </head>
   <body>
     <a class="skip-link" href="#main">Skip to content</a>
-    <Header current={Astro.url.pathname.replace(/\/$/, '') || '/'} showThoughts={showThoughts} />
+    <Header showThoughts={showThoughts} />
     <main id="main">
       <slot />
     </main>
-    <slot name="after-main" />
     <Footer />
   </body>
 </html>
+
+<style>
+  main { padding-top: var(--nav-h); }
+</style>

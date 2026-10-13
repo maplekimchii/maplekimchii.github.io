@@ -1,189 +1,186 @@
 ---
-import PlaneLogo from '../icons/plane-logo.svg';
+// Pinned nav (Figma "nav" 2060:942) and the mobile menu sheet (2104:2626).
+// Links are plain fragment links: on the home page the browser smooth-scrolls (see global.css),
+// elsewhere they load the home page at that section.
+import MenuIcon from '../icons/menu.svg';
+import CloseIcon from '../icons/close.svg';
+import { profile } from '../lib/content';
 
 interface Props {
-  current: string; // pathname of the current page
   showThoughts: boolean;
 }
-const { current, showThoughts } = Astro.props;
+const { showThoughts } = Astro.props;
 
 const items = [
-  { gate: 'G01', label: 'Home', href: '/' },
-  { gate: 'G02', label: 'About', href: '/about' },
-  { gate: 'G03', label: 'Projects', href: '/projects' },
-  { gate: 'G04', label: 'Experiences', href: '/experience' },
-  ...(showThoughts ? [{ gate: 'G05', label: 'Thoughts', href: '/thoughts' }] : []),
+  { label: 'Work', href: '/#work' },
+  { label: 'Experience', href: '/#experience' },
+  { label: 'About', href: '/#about' },
+  ...(showThoughts ? [{ label: 'Thoughts', href: '/#thoughts' }] : []),
 ];
-const isActive = (href: string) =>
-  href === '/' ? current === '/' : current === href || current.startsWith(`${href}/`);
 ---
 
 <header class="site-header">
   <div class="container bar">
-    <a class="brand" href="/" aria-label="Sean Kim, home">
-      <span class="brand-mark"><PlaneLogo width={24} height={24} aria-hidden="true" /></span>
-      <span class="brand-name">SEAN KIM</span>
-    </a>
+    <a class="brand" href="/">SEAN KIM</a>
 
-    <button class="menu-btn" type="button" aria-expanded="false" aria-controls="site-nav">
-      <span class="menu-icon" aria-hidden="true"></span>
-      <span>Menu</span>
-    </button>
-
-    <nav id="site-nav" class="nav" aria-label="Main">
+    <nav class="links" aria-label="Main">
       <ul>
-        {items.map((it) => (
-          <li>
-            <a
-              class:list={['nav-item', { active: isActive(it.href) }]}
-              href={it.href}
-              aria-current={isActive(it.href) ? 'page' : undefined}
-            >
-              <span class="gate">{it.gate}</span>
-              <span class="label">{it.label}</span>
-            </a>
-          </li>
-        ))}
+        {items.map((it) => <li><a href={it.href}>{it.label}</a></li>)}
+        <li>
+          <a href={profile.resume} target="_blank" rel="noopener">Résumé <span class="arrow" aria-hidden="true">↗</span><span class="visually-hidden"> (PDF, opens in a new tab)</span></a>
+        </li>
       </ul>
     </nav>
+
+    <button class="menu-btn" type="button" aria-expanded="false" aria-controls="menu-sheet">
+      <span class="menu-label">Menu</span>
+      <MenuIcon class="icon-menu" aria-hidden="true" />
+      <CloseIcon class="icon-close" aria-hidden="true" />
+    </button>
   </div>
 </header>
 
+<div id="menu-sheet" class="sheet" hidden>
+  <nav aria-label="Main menu">
+    <ul>
+      {items.map((it, i) => (
+        <li><a href={it.href}><span class="num">{String(i + 1).padStart(2, '0')}</span>{it.label}</a></li>
+      ))}
+      <li>
+        <a href={profile.resume} target="_blank" rel="noopener"><span class="num" aria-hidden="true">↗</span>Résumé<span class="visually-hidden"> (PDF, opens in a new tab)</span></a>
+      </li>
+    </ul>
+  </nav>
+  <a class="sheet-email" href={`mailto:${profile.email}`}>{profile.email}</a>
+</div>
+
 <script>
-  const btn = document.querySelector<HTMLButtonElement>('.menu-btn');
-  const nav = document.getElementById('site-nav');
-  if (btn && nav) {
-    const set = (open: boolean) => {
-      btn.setAttribute('aria-expanded', String(open));
-      nav.classList.toggle('open', open);
-    };
-    btn.addEventListener('click', () => set(btn.getAttribute('aria-expanded') !== 'true'));
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && nav.classList.contains('open')) {
-        set(false);
-        btn.focus();
-      }
-    });
-  }
+  const btn = document.querySelector<HTMLButtonElement>('.menu-btn')!;
+  const sheet = document.getElementById('menu-sheet')!;
+  const label = btn.querySelector('.menu-label')!;
+  const isOpen = () => btn.getAttribute('aria-expanded') === 'true';
+
+  const set = (open: boolean) => {
+    btn.setAttribute('aria-expanded', String(open));
+    label.textContent = open ? 'Close' : 'Menu';
+    sheet.hidden = !open;
+    document.documentElement.classList.toggle('menu-open', open); // scroll lock
+  };
+
+  btn.addEventListener('click', () => set(!isOpen()));
+  // Close first, so the fragment navigation that follows can scroll the page.
+  sheet.querySelectorAll('a').forEach((a) => a.addEventListener('click', () => set(false)));
+
+  document.addEventListener('keydown', (e) => {
+    if (!isOpen()) return;
+    if (e.key === 'Escape') {
+      set(false);
+      btn.focus();
+    } else if (e.key === 'Tab') {
+      // Focus trap: the toggle button plus the sheet's links.
+      const items = [btn, ...sheet.querySelectorAll<HTMLElement>('a')];
+      const i = items.indexOf(document.activeElement as HTMLElement);
+      const next = e.shiftKey ? (i <= 0 ? items.length - 1 : i - 1) : (i === items.length - 1 ? 0 : i + 1);
+      e.preventDefault();
+      items[next].focus();
+    }
+  });
+
+  matchMedia('(min-width: 768px)').addEventListener('change', (e) => e.matches && set(false));
 </script>
 
 <style>
   .site-header {
-    position: sticky;
-    top: 0;
+    position: fixed;
+    inset: 0 0 auto;
     z-index: 50;
     background: color-mix(in srgb, var(--silver-50) 94%, transparent);
-    backdrop-filter: blur(8px);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid color-mix(in srgb, var(--ink) 12%, transparent);
   }
   .bar {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding-block: 24px;
-    gap: 16px;
+    height: calc(var(--nav-h) - 1px);
   }
   .brand {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    color: var(--ink);
-    text-decoration: none;
-  }
-  .brand-mark {
-    display: grid;
-    place-items: center;
-    width: 40px;
-    height: 40px;
-    background: var(--sky-blue);
-  }
-  .brand-name {
-    font-weight: 800;
-    font-size: 18px;
-  }
-  .nav ul {
-    display: flex;
-    gap: 16px;
-  }
-  .nav-item {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 12px 16px;
-    background: var(--white);
-    border: 1px solid var(--silver-200);
-    color: var(--ink);
-    text-decoration: none;
-  }
-  .nav-item:hover {
-    border-color: var(--sky-blue);
-    text-decoration: none;
-  }
-  .nav-item.active {
-    background: var(--sky-blue);
-    border-color: var(--sky-blue);
-  }
-  .gate {
-    padding: 2px 6px;
-    background: var(--silver-100);
     font-family: var(--font-mono);
-    font-weight: 700;
-    font-size: 11px;
-    color: var(--main-blue);
+    font-weight: 500;
+    font-size: 18px;
+    letter-spacing: 0.08em;
+    color: var(--ink);
   }
-  .active .gate { background: var(--white); }
-  .label {
-    font-weight: 700;
+  .links ul {
+    display: flex;
+    align-items: baseline;
+    gap: 32px;
+  }
+  .links a {
+    font-weight: 500;
+    font-size: 15px;
+    color: var(--ink);
+  }
+  /* The mono arrow must not change the line box, or Résumé sits lower than the rest. */
+  .arrow { font-family: var(--font-mono); font-weight: 400; line-height: 0; }
+
+  .menu-btn {
+    display: none;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 0;
+    border: 0;
+    background: none;
+    font-weight: 500;
+    font-size: 15px;
+    color: var(--ink);
+    cursor: pointer;
+  }
+  .menu-btn[aria-expanded='true'] .icon-menu,
+  .menu-btn[aria-expanded='false'] .icon-close { display: none; }
+
+  .sheet {
+    position: fixed;
+    inset: 0;
+    z-index: 49;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: calc(var(--nav-h) + 32px) var(--gutter) 40px;
+    background: var(--silver-50);
+    overflow-y: auto;
+  }
+  .sheet[hidden] { display: none; }
+  .sheet ul { border-top: 1px solid var(--silver-200); }
+  .sheet li { border-bottom: 1px solid var(--silver-200); }
+  .sheet li a {
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+    padding-block: 20px;
+    font-weight: 800;
+    font-size: 30px;
+    line-height: 1.05;
+    color: var(--ink);
+  }
+  .num {
+    flex: 0 0 24px;
+    font-family: var(--font-mono);
+    font-weight: 400;
     font-size: 13px;
-    text-transform: uppercase;
+    color: var(--muted);
   }
-  .menu-btn { display: none; }
+  .sheet-email {
+    margin-top: 40px;
+    font-weight: 800;
+    font-size: 20px;
+    color: var(--ink);
+    text-decoration: underline;
+    overflow-wrap: anywhere;
+  }
 
-  @media (max-width: 1023px) {
-    .bar { padding-block: 16px; }
-    .menu-btn {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 10px 14px;
-      background: var(--white);
-      border: 1px solid var(--silver-200);
-      font-family: var(--font-mono);
-      font-weight: 700;
-      font-size: 12px;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      cursor: pointer;
-    }
-    .menu-icon,
-    .menu-icon::before,
-    .menu-icon::after {
-      display: block;
-      width: 16px;
-      height: 2px;
-      background: var(--ink);
-      position: relative;
-    }
-    .menu-icon::before,
-    .menu-icon::after {
-      content: '';
-      position: absolute;
-      left: 0;
-    }
-    .menu-icon::before { top: -5px; }
-    .menu-icon::after { top: 5px; }
-
-    .nav {
-      display: none;
-      position: absolute;
-      inset: 100% 0 auto 0;
-      background: var(--silver-50);
-      border-bottom: 1px solid var(--silver-200);
-      padding: 8px var(--gutter) 20px;
-    }
-    .nav.open { display: block; }
-    .nav ul {
-      flex-direction: column;
-      gap: 8px;
-    }
+  @media (max-width: 767px) {
+    .links { display: none; }
+    .menu-btn { display: flex; }
   }
 </style>

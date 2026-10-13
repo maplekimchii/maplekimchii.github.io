@@ -1,88 +1,156 @@
 ---
+// Figma "Baggage Carousel" (2090:2227). One bag open at a time; the belt drifts slowly
+// in a loop. The bags are rendered twice so the loop is seamless; the second set is
+// hidden from assistive tech and the tab order.
 import Luggage from './Luggage.astro';
+import ImageIcon from '../icons/image.svg';
 import { getInterests } from '../lib/content';
 
 const interests = await getInterests();
+// Bottom edge of the open card, measured from the top of the 300px bag slot (Figma "card-anchor").
+const cardBottom = { suitcase: 104, duffel: 160, backpack: 106, briefcase: 161 };
 ---
 
 <div class="carousel-wrap">
-  <p class="mono-label hint" id="bags-hint">Tap a bag to see what’s inside.</p>
-  <div class="carousel" role="region" aria-label="Interests carousel" aria-describedby="bags-hint" tabindex="0">
+  <p class="hint" id="bags-hint">Off duty · tap a bag to see what’s inside</p>
+  <div class="carousel" role="region" aria-label="Interests" aria-describedby="bags-hint" data-carousel>
     <ul class="belt">
-      {interests.map((it, i) => {
-        const tag = String(i + 1).padStart(2, '0');
-        const cardId = `interest-${it.id}`;
-        return (
-          <li class="slot">
-            <div class:list={['interest-card', it.data.bag]} id={cardId}>
-              <p class="kicker">Interest</p>
-              <p class="title">{it.data.title}</p>
-              {it.data.blurb && <p class="blurb">{it.data.blurb}</p>}
-            </div>
-            <button class="bag-btn" type="button" aria-expanded="false" aria-controls={cardId} aria-label={`Bag ${tag}`}>
-              <Luggage type={it.data.bag} tag={tag} />
-            </button>
-          </li>
-        );
-      })}
+      {[false, true].map((clone) =>
+        interests.map((it, i) => {
+          const tag = String(i + 1).padStart(2, '0');
+          const cardId = clone ? undefined : `interest-${it.id}`;
+          return (
+            <li class="slot" aria-hidden={clone ? 'true' : undefined}>
+              <div class="interest-card" id={cardId} style={`bottom:${300 - cardBottom[it.data.bag]}px`}>
+                <p class="kicker">Interest</p>
+                <p class="title">{it.data.title}</p>
+                {it.data.blurb && <p class="blurb">{it.data.blurb}</p>}
+                {it.data.photo ? (
+                  <img class="photo" src={it.data.photo} alt="" width="170" height="112" loading="lazy" />
+                ) : (
+                  <span class="photo placeholder" aria-hidden="true"><ImageIcon /><span>PHOTO</span></span>
+                )}
+              </div>
+              <button
+                class="bag-btn"
+                type="button"
+                aria-expanded="false"
+                aria-controls={cardId}
+                aria-label={`Bag ${tag}`}
+                tabindex={clone ? -1 : undefined}
+              >
+                <Luggage type={it.data.bag} tag={tag} />
+              </button>
+            </li>
+          );
+        })
+      )}
     </ul>
   </div>
 </div>
 
 <script>
-  document.querySelectorAll<HTMLButtonElement>('.bag-btn').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      btn.setAttribute('aria-expanded', String(btn.getAttribute('aria-expanded') !== 'true'));
+  document.querySelectorAll<HTMLElement>('[data-carousel]').forEach((root) => {
+    const buttons = [...root.querySelectorAll<HTMLButtonElement>('.bag-btn')];
+    const n = buttons.length / 2;
+
+    // ---- Open state: one bag at most (null or 0..n-1), mirrored on the clone ----
+    let openIndex: number | null = null;
+    const setOpen = (i: number | null) => {
+      openIndex = i;
+      buttons.forEach((b, j) => b.setAttribute('aria-expanded', String(j % n === i)));
+    };
+    buttons.forEach((b, j) => b.addEventListener('click', () => setOpen(openIndex === j % n ? null : j % n)));
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && openIndex !== null) setOpen(null);
     });
+
+    // ---- Slow auto-scroll; pauses on hover, focus, an open bag, or after the visitor scrolls ----
+    const reduce = matchMedia('(prefers-reduced-motion: reduce)');
+    const SPEED = 24; // px per second
+    let hover = false;
+    let focus = false;
+    let visible = false;
+    let idleUntil = 0;
+    root.addEventListener('pointerenter', (e) => (hover = e.pointerType === 'mouse'));
+    root.addEventListener('pointerleave', () => (hover = false));
+    root.addEventListener('focusin', () => (focus = true));
+    root.addEventListener('focusout', (e) => (focus = root.contains(e.relatedTarget as Node)));
+    new IntersectionObserver(([entry]) => (visible = entry.isIntersecting)).observe(root);
+
+    let pos = root.scrollLeft;
+    let expected = root.scrollLeft;
+    let prev = 0;
+    const tick = (now: number) => {
+      const dt = prev ? Math.min(0.1, (now - prev) / 1000) : 0;
+      prev = now;
+      // Any scroll we didn't make (swipe, wheel, keys) hands control to the visitor for a moment.
+      if (Math.abs(root.scrollLeft - expected) > 2) idleUntil = now + 2000;
+      const paused = hover || focus || openIndex !== null || reduce.matches || !visible || now < idleUntil;
+      if (paused) {
+        pos = root.scrollLeft;
+      } else {
+        const setWidth = buttons[n].parentElement!.offsetLeft - buttons[0].parentElement!.offsetLeft;
+        pos += SPEED * dt;
+        if (pos >= setWidth) pos -= setWidth;
+        root.scrollLeft = pos;
+      }
+      expected = root.scrollLeft;
+      requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
   });
 </script>
 
 <style>
-  .carousel-wrap > * + * { margin-top: 24px; }
-  .hint { color: var(--muted); font-size: 11px; text-transform: none; letter-spacing: 0.02em; }
+  .hint {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    position: relative;
+    z-index: 1; /* sits over the belt's empty headroom; an open card (z-index 2) covers it */
+  }
   .carousel {
+    margin-top: -80px; /* tucks the 100px card headroom under the hint */
     overflow-x: auto;
     overflow-y: hidden;
-    scroll-snap-type: x mandatory;
-    scrollbar-width: thin;
+    scrollbar-width: none;
     -webkit-overflow-scrolling: touch;
   }
+  .carousel::-webkit-scrollbar { display: none; }
+
+  /* Belt is bottom-anchored: 100px headroom for the card, a 300px bag slot, 92px of belt below it.
+     Layers from the Figma carousel, front to back. */
   .belt {
-    position: relative;
     display: flex;
-    gap: 40px;
-    min-width: 100%;
+    gap: 24px;
     width: max-content;
-    padding: 0 24px 72px;
-  }
-  /* Conveyor seen from ~35° above: back rail, slatted belt, front lip, brushed-steel skirt */
-  .belt::before {
-    content: '';
-    position: absolute;
-    left: 0;
-    right: 0;
-    top: 186px;
-    height: 186px;
-    z-index: 0;
+    min-width: 100%;
+    padding: 100px 24px 92px;
     background:
-      /* back rail */
-      linear-gradient(#f4f7fa, #c7d0d8) top / 100% 8px no-repeat,
-      /* slatted belt */
-      repeating-linear-gradient(90deg, transparent 0 58px, rgb(113 203 235 / 0.16) 58px 60px) 0 8px / 100% 110px no-repeat,
-      linear-gradient(#0b2245, #183766 70%, #0e2a52) 0 8px / 100% 110px no-repeat,
       /* front lip */
-      linear-gradient(#ffffff, #cfd8e0) 0 118px / 100% 10px no-repeat,
-      /* skirt with panel seams */
-      repeating-linear-gradient(90deg, transparent 0 173px, rgb(14 42 82 / 0.08) 173px 175px) 0 128px / 100% 58px no-repeat,
-      linear-gradient(#e7ecf0, #d4dbe2 50%, #e9eef2) 0 128px / 100% 58px no-repeat;
-    border-bottom: 4px solid var(--silver-200);
+      linear-gradient(var(--white), #aeb9c3) left bottom 72px / 100% 14px no-repeat,
+      /* back rail */
+      linear-gradient(var(--white), #b7c1ca) left bottom 222px / 100% 16px no-repeat,
+      /* belt slats every 56px */
+      repeating-linear-gradient(90deg, transparent 0 28px, rgb(255 255 255 / 0.08) 28px 30px, transparent 30px 56px) left bottom 80px / 100% 144px no-repeat,
+      /* belt */
+      linear-gradient(#243e63, #0b1f3a) left bottom 80px / 100% 144px no-repeat,
+      /* skirt edges and panel seams every 220px */
+      linear-gradient(var(--silver-200), var(--silver-200)) left bottom 73px / 100% 1px no-repeat,
+      linear-gradient(var(--silver-200), var(--silver-200)) left bottom 16px / 100% 1px no-repeat,
+      repeating-linear-gradient(90deg, transparent 0 220px, rgb(217 224 230 / 0.9) 220px 222px) left bottom 16px / 100% 58px no-repeat,
+      /* skirt */
+      linear-gradient(#f4f6f8, #c9d1d8 45%, #e3e8ec) left bottom 16px / 100% 58px no-repeat,
+      /* floor shadow */
+      linear-gradient(rgb(14 42 82 / 0.14), rgb(14 42 82 / 0.14)) left bottom 4px / 100% 16px no-repeat;
   }
   .slot {
     position: relative;
-    z-index: 1;
     flex: 0 0 220px;
     height: 300px;
-    scroll-snap-align: center;
   }
   .bag-btn {
     position: absolute;
@@ -95,6 +163,7 @@ const interests = await getInterests();
   .bag-btn:focus-visible { outline-offset: -4px; }
   .bag-btn[aria-expanded='true'] :global(.bag) { transform: translateY(8px); }
 
+  /* Bottom-anchored: the card grows upward from just above its bag and never covers it. */
   .interest-card {
     position: absolute;
     left: 10px;
@@ -113,10 +182,6 @@ const interests = await getInterests();
     transform: translateY(52px) scale(0.96);
     transition: opacity 350ms ease-out, transform 350ms cubic-bezier(0.2, 0.8, 0.2, 1), visibility 0s 350ms;
   }
-  /* Bottom-anchored so the card always ends just above its bag, with or without a blurb */
-  .interest-card.suitcase { bottom: 157px; }
-  .interest-card.duffel, .interest-card.briefcase { bottom: 139px; }
-  .interest-card.backpack { bottom: 173px; }
   .slot:has([aria-expanded='true']) .interest-card {
     opacity: 1;
     visibility: visible;
@@ -132,4 +197,24 @@ const interests = await getInterests();
   }
   .title { font-weight: 800; font-size: 18px; line-height: 1.15; }
   .blurb { font-size: 12px; color: var(--muted); line-height: 1.35; }
+  .photo {
+    width: 100%;
+    height: 112px;
+    border-radius: 4px;
+    object-fit: cover;
+  }
+  .placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    background: var(--silver-100);
+    border: 1px dashed color-mix(in srgb, var(--muted) 50%, transparent);
+    font-family: var(--font-mono);
+    font-weight: 500;
+    font-size: 9px;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+  }
 </style>

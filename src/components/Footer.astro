@@ -2,46 +2,51 @@
 import { profile } from '../lib/content';
 ---
 
-<footer class="site-footer">
-  <div class="container row">
-    <p class="route">
-      <span class="mono-label">Contact route</span>
-      <a href={`mailto:${profile.email}`}>{profile.email}</a>
-    </p>
-    <p class="copy">© 2026 {profile.name} · {profile.location}</p>
+<footer class="container site-footer">
+  <p class="label">Say hello</p>
+  <a class="email" href={`mailto:${profile.email}`}>{profile.email}</a>
+  <div class="row">
+    <p>© 2026 {profile.name}</p>
+    <p>Thanks for flying by.</p>
   </div>
 </footer>
 
 <style>
   .site-footer {
-    background: var(--sky-blue);
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 56px;
+    padding-top: 100px;
+    padding-bottom: 56px;
+  }
+  .label {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .email {
+    font-weight: 800;
+    font-size: 56px;
+    line-height: normal;
     color: var(--ink);
+    text-decoration: underline;
+    overflow-wrap: anywhere;
   }
   .row {
     display: flex;
-    align-items: center;
     justify-content: space-between;
     flex-wrap: wrap;
     gap: 8px 24px;
-    padding-block: 12px;
-    min-height: 45px;
-  }
-  .route {
-    display: flex;
-    align-items: baseline;
-    gap: 12px;
-  }
-  .route .mono-label { color: var(--ink); }
-  .route a {
-    color: var(--ink);
-    font-weight: 700;
-    font-size: 16px;
-    text-transform: uppercase;
-  }
-  .copy {
+    width: 100%;
     font-family: var(--font-mono);
-    font-size: 9px;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
+    font-size: 12px;
+    color: var(--muted);
+  }
+  @media (max-width: 767px) {
+    .site-footer { gap: 32px; padding-top: 72px; }
+    .email { font-size: 28px; }
   }
 </style>

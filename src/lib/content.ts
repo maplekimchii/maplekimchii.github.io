@@ -1,22 +1,20 @@
 import { getCollection } from 'astro:content';
 import profileData from '../content/profile.json';
-import skillsData from '../content/skills.json';
 import interestsData from '../content/interests.json';
 
 export const profile = profileData;
-export const skills = skillsData;
 
-const MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
-/** "2026-01" -> "JAN 2026" */
+/** "2026-01" -> "Jan 2026" */
 export function formatMonth(ym: string): string {
   const [y, m] = ym.split('-');
   return `${MONTHS[Number(m) - 1]} ${y}`;
 }
 
-/** "JAN – APR 2026", "SEP 2023 – MAR 2025", "SEP 2026 – PRESENT" */
+/** "Jan – Apr 2026", "Sep 2023 – Mar 2025", "Sep 2026 – Present" */
 export function formatRange(start: string, end: string | null): string {
-  if (!end) return `${formatMonth(start)} – PRESENT`;
+  if (!end) return `${formatMonth(start)} – Present`;
   const [sy] = start.split('-');
   const [ey] = end.split('-');
   return sy === ey
@@ -24,20 +22,18 @@ export function formatRange(start: string, end: string | null): string {
     : `${formatMonth(start)} – ${formatMonth(end)}`;
 }
 
-/** "Winter 2026" -> "W26" */
-export function termCode(term: string): string {
-  const [season, year] = term.split(' ');
-  return `${season[0].toUpperCase()}${year.slice(2)}`;
-}
-
-/** 2025-01-15 -> "15 JAN 2025" */
+/** 2025-01-15 -> "15 Jan 2025" */
 export function formatDate(d: Date): string {
   return `${String(d.getUTCDate()).padStart(2, '0')} ${MONTHS[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
 }
 
 export async function getExperience() {
   const all = await getCollection('experience');
-  return all.sort((a, b) => b.data.start.localeCompare(a.data.start));
+  // Newest first; for the same start month, the one still running (or ending later) first.
+  return all.sort(
+    (a, b) =>
+      b.data.start.localeCompare(a.data.start) || (b.data.end ?? '9999').localeCompare(a.data.end ?? '9999'),
+  );
 }
 
 export async function getProjects() {

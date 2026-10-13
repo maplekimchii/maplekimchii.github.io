@@ -15,7 +15,7 @@ const experience = defineCollection({
     organisation: z.string(),
     location: z.string(),
     details: z.array(z.string()).max(2),
-    featured: z.boolean(),
+    tags: z.array(z.string()),
   }),
 });
 
@@ -31,7 +31,6 @@ const projects = defineCollection({
     stack: z.array(z.string()),
     links: z.array(z.object({ label: z.string(), href: z.url() })),
     thumbnail: z.string().nullable(),
-    featured: z.boolean(),
     caseStudy: z
       .object({
         problem: z.string(),
@@ -60,6 +59,7 @@ const interests = defineCollection({
     title: z.string(),
     blurb: z.string().nullable(),
     bag: z.enum(['suitcase', 'duffel', 'backpack', 'briefcase']),
+    photo: z.string().nullable(), // image path in public/; null shows the placeholder
   }),
 });
 

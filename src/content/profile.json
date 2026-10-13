@@ -2,9 +2,13 @@
   "name": "Sean Kim",
   "givenNames": "Sean",
   "surname": "Kim",
-  "headline": "I work where software, data and finance meet.",
+  "headline": "Statistics, Economics, and CS @ Waterloo",
   "intro": "Statistics student at the University of Waterloo, with minors in Computer Science and Economics. I’ve lived in seven cities on four continents and now call Toronto home.",
-  "bio": "Statistics student at the University of Waterloo, with minors in Computer Science and Economics. I work where software, data and finance meet.",
+  "bio": [
+    "I’ve lived in seven cities on four continents — Seoul, Fairfax, Geneva, Dakar, Moscow and Kuala Lumpur — before landing in Toronto.",
+    "Now I study Statistics at Waterloo with minors in CS and Economics, and spend most of my time where software, data and finance overlap.",
+    "Off duty: Formula 1, drumming, golf, poker, bartending."
+  ],
   "school": "University of Waterloo",
   "program": "Honours Bachelor of Mathematics in Statistics",
   "minors": "Computer Science and Economics",

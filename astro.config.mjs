@@ -8,4 +8,10 @@ export default defineConfig({
   site,
   trailingSlash: 'ignore',
   integrations: [sitemap()],
+  // The old section pages now live on the single home page.
+  redirects: {
+    '/about': '/#about',
+    '/experience': '/#experience',
+    '/projects': '/#work',
+  },
 });

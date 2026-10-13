@@ -14,7 +14,7 @@ const { Content } = await render(post);
 
 <Base title={post.data.title} description={post.data.summary}>
   <article class="container section post">
-    <p><a class="text-link" href="/thoughts">← All thoughts · G05</a></p>
+    <p><a class="text-link" href="/thoughts">← All thoughts</a></p>
     <header>
       <p class="mono-label">{post.data.code} · {post.data.topic} · {formatDate(post.data.date)}{post.data.readMinutes && ` · ${post.data.readMinutes} min`}</p>
       <h1 class="title">{post.data.title}</h1>

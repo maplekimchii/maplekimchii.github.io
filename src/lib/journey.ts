@@ -1,5 +1,5 @@
-// Journey map geometry. Pure functions shared by the build (static Home preview)
-// and the browser (interactive About map). Coordinate space: 1280×520.
+// Journey map geometry. Pure functions shared by the build (initial render)
+// and the browser (interactive map). World coordinate space: 1280×520.
 // The projection matches the one the basemap image was rendered with — don't tweak it.
 
 export type Pt = [number, number];
@@ -8,7 +8,11 @@ export type Camera = { s: number; tx: number; ty: number };
 
 export const W = 1280;
 export const H = 520;
-export const VIS = 456; // visible map height above the 64px HUD
+export const VIS = 456; // projection constant (height of the original overview map)
+/** Compact map viewport (Figma 480×196) as a height in world units. */
+export const VIEW_H = (W * 196) / 480;
+/** Camera zoom: ≈4× the world overview (s = 1.1446), as in the Figma Journey Map / Compact variants. */
+export const ZOOM = 4 * 1.1446;
 
 const LAT0 = 72;
 const LON0 = -104;
@@ -70,29 +74,9 @@ export const pathD = (pts: Pt[]) =>
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
 
-/**
- * Camera for step k (1-based). `visH` is the visible height: 456 when the HUD
- * overlays the map, 520 when the HUD sits below it (mobile).
- */
-export function cameraFor(k: number, stops: Stop[], legs: Pt[][], visH = VIS): Camera {
-  let s: number;
-  let cx: number;
-  let cy: number;
-  if (k === 1) {
-    s = 2.4;
-    [cx, cy] = project(stops[0]);
-  } else {
-    const pts = legs[k - 2];
-    const xs = pts.map((p) => p[0]);
-    const ys = pts.map((p) => p[1]);
-    const [x0, x1, y0, y1] = [Math.min(...xs), Math.max(...xs), Math.min(...ys), Math.max(...ys)];
-    s = clamp(Math.min(W / (x1 - x0 + 220), VIS / (y1 - y0 + 170)), 1, 2.4);
-    cx = (x0 + x1) / 2;
-    cy = (y0 + y1) / 2 + 12;
-  }
-  const tx = clamp(W / 2 - s * cx, W - W * s, 0);
-  const ty = clamp(visH / 2 - s * cy, visH - H * s, 0);
-  return { s, tx, ty };
+/** Camera centred on `at` at a fixed zoom, clamped so the basemap always fills the viewport. */
+export function cameraAt([x, y]: Pt, s = ZOOM, visH = VIEW_H): Camera {
+  return { s, tx: clamp(W / 2 - s * x, W - W * s, 0), ty: clamp(visH / 2 - s * y, visH - H * s, 0) };
 }
 
 export const toScreen = ([x, y]: Pt, c: Camera): Pt => [c.s * x + c.tx, c.s * y + c.ty];
@@ -102,5 +86,3 @@ export const heading = (a: Pt, b: Pt) => (Math.atan2(b[1] - a[1], b[0] - a[0]) *
 
 /** Shortest signed rotation from a to b, in degrees. */
 export const shortestDelta = (a: number, b: number) => ((((b - a) % 360) + 540) % 360) - 180;
-
-export const formatKm = (km: number) => `${km.toLocaleString('en-CA')} KM`;

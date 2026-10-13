@@ -4,9 +4,15 @@ Sources:
 - Three résumés in `Resumes/` (not committed): **SWE.pdf**, **Quant.pdf** and **Finance.pdf**. "All three" means the fact appears in every version.
 - Sean's answers to the open questions, marked **Sean** below.
 
+## Simplified (v2) redesign
+
+- The site is now one page (Figma "Simplified (v2)"). Copy that only exists in that Figma page was added to the data files: the headline, the three About paragraphs and the experience tag lines.
+- Stop 2 of the journey is **Fairfax, Virginia (IAD)**, replacing Washington DC (**Sean**).
+- Names stay as in the résumés where Figma shortens them (e.g. "Korn Ferry International", "Pairs Trading Engine with Kalman Filter").
+
 ## Positioning
 
-- **Headline:** "I work where software, data and finance meet."
+- **Headline (v1, replaced by the v2 headline):** "I work where software, data and finance meet."
   - The Figma placeholder was "I design and build product interfaces." None of the résumés mention design work, so it was replaced.
   - Sean asked for a broad, non-job-specific headline.
   - The three résumés target software, quant and finance roles, and the experience spans AI engineering, investment analysis and quant projects. The headline names that common thread.

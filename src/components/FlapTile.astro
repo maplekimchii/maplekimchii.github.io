@@ -9,7 +9,8 @@ const { char } = Astro.props;
 
 <style>
   .flap {
-    --w: clamp(56px, 18vw, 88px);
+    /* 79.2×108 in Figma; shrinks only when four tiles don't fit (narrow phones) */
+    --w: min(79.2px, (100vw - 2 * var(--gutter) - 24px) / 4);
     position: relative;
     display: grid;
     place-items: center;
@@ -17,7 +18,7 @@ const { char } = Astro.props;
     aspect-ratio: 88 / 120;
     border-radius: 6px;
     overflow: hidden;
-    background: linear-gradient(var(--white) 0 49.17%, var(--silver-50) 49.17% 50.83%, var(--ink) 50.83%);
+    background: linear-gradient(var(--ink) 0 49.17%, var(--silver-50) 49.17% 50.83%, var(--ink) 50.83%);
   }
   .char {
     font-family: var(--font-mono);

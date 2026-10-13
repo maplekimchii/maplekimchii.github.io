@@ -10,7 +10,6 @@
     "stack": ["React", "TypeScript", "Tailwind", "FastAPI", "PostgreSQL", "SQLAlchemy", "Docker"],
     "links": [{ "label": "GitHub", "href": "https://github.com/maplekimchii/TripScape-public" }],
     "thumbnail": null,
-    "featured": true,
     "caseStudy": {
       "problem": "Several people planning one trip need to edit the same plan at once, across a Kanban board, a calendar and a map, without the views drifting apart.",
       "whatIDid": [
@@ -36,7 +35,6 @@
     "stack": ["Python", "PyTorch", "Hugging Face", "scikit-learn", "Pandas", "OpenAI API"],
     "links": [{ "label": "GitHub", "href": "https://github.com/maplekimchii/NewsChecker-public" }],
     "thumbnail": null,
-    "featured": true,
     "caseStudy": {
       "problem": "Detect political bias at the sentence level in news articles, and check that the model still works on outlets and topics it hasn’t seen.",
       "whatIDid": [
@@ -62,7 +60,6 @@
     "stack": ["Python", "NumPy", "statsmodels", "Pandas"],
     "links": [],
     "thumbnail": null,
-    "featured": true,
     "caseStudy": {
       "problem": "A fixed OLS hedge ratio drifts over time and carries errors-in-variables bias, which weakens a pairs-trading signal.",
       "whatIDid": [
@@ -86,7 +83,6 @@
     "stack": ["Python", "hmmlearn", "NumPy", "Pandas", "matplotlib"],
     "links": [],
     "thumbnail": null,
-    "featured": false,
     "caseStudy": {
       "problem": "One strategy rarely suits every market. Spotting the current regime makes it possible to size positions to match.",
       "whatIDid": [

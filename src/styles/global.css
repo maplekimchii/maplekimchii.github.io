@@ -6,6 +6,12 @@
 }
 @font-face {
   font-family: 'Archivo';
+  src: url('/fonts/archivo-latin-500-normal.woff2') format('woff2');
+  font-weight: 500;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Archivo';
   src: url('/fonts/archivo-latin-700-normal.woff2') format('woff2');
   font-weight: 700;
   font-display: swap;
@@ -20,6 +26,12 @@
   font-family: 'IBM Plex Mono';
   src: url('/fonts/ibm-plex-mono-latin-400-normal.woff2') format('woff2');
   font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'IBM Plex Mono';
+  src: url('/fonts/ibm-plex-mono-latin-500-normal.woff2') format('woff2');
+  font-weight: 500;
   font-display: swap;
 }
 @font-face {
@@ -45,17 +57,19 @@
   --font-mono: 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
 
   --gutter: 48px;
-  --max: 1344px;
+  --max: 1120px;
   --radius: 8px;
+  --nav-h: 68px;
 }
 
 @media (max-width: 767px) {
-  :root { --gutter: 20px; }
+  :root { --gutter: 20px; --nav-h: 60px; }
 }
 
 *, *::before, *::after { box-sizing: border-box; }
 
-html { -webkit-text-size-adjust: 100%; scroll-padding-top: 100px; }
+html { -webkit-text-size-adjust: 100%; scroll-padding-top: var(--nav-h); scroll-behavior: smooth; }
+html.menu-open { overflow: hidden; }
 
 body {
   margin: 0;
@@ -117,19 +131,6 @@ button { font: inherit; color: inherit; }
   background: var(--white);
   border: 1px solid var(--silver-200);
   border-radius: var(--radius);
-}
-
-/* "SEE ALL PROJECTS · G03 →" */
-.see-more {
-  display: flex;
-  justify-content: flex-end;
-}
-.see-more a {
-  font-family: var(--font-mono);
-  font-weight: 700;
-  font-size: 12px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
 }
 
 .text-link {

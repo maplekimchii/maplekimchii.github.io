@@ -1,17 +1,18 @@
-// Interactive journey map (About page). Only the slider changes steps; the map
-// itself has no pointer handlers, so it never blocks page scrolling.
+// Interactive compact journey map. Only the slider changes stops (drag, tap a stop
+// code, arrow keys); the map itself has no pointer handlers, so it never blocks
+// page scrolling. The camera stays at a fixed zoom and follows the plane.
 import {
-  H, VIS, W, cameraFor, formatKm, heading, legSamples, project, shortestDelta, toScreen,
+  VIEW_H, W, cameraAt, heading, legSamples, project, shortestDelta, toScreen,
   type Camera, type Pt,
 } from './journey';
 
-type City = { code: string; city: string; km: number; lon: number; lat: number; label: string };
-
-const LIFT = [0, 7, 13, 13, 13, 13, 0];
-const PITCH = [0, 5, 0, 0, 0, 0, 0];
+type City = { code: string; city: string; km: number; lon: number; lat: number };
 
 const ease = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2);
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
+const lerpCam = (a: Camera, b: Camera, t: number): Camera => ({
+  s: lerp(a.s, b.s, t), tx: lerp(a.tx, b.tx, t), ty: lerp(a.ty, b.ty, t),
+});
 
 export function initJourney(root: HTMLElement) {
   const cities: City[] = JSON.parse(root.dataset.journey!);
@@ -27,33 +28,29 @@ export function initJourney(root: HTMLElement) {
   const progress = root.querySelector<HTMLElement>('.progress')!;
   const stops = [...root.querySelectorAll<HTMLElement>('[data-stop]')];
   const thumb = root.querySelector<HTMLElement>('.thumb')!;
-  const hint = root.querySelector<HTMLElement>('[data-hint]')!;
-  const distance = root.querySelector<HTMLElement>('[data-distance]')!;
-  const nowLabel = root.querySelector<HTMLElement>('[data-now-label]')!;
-  const now = root.querySelector<HTMLElement>('[data-now]')!;
   const live = root.querySelector<HTMLElement>('[data-live]')!;
   const stage = root.querySelector<HTMLElement>('.stage')!;
 
-  const wide = matchMedia('(min-width: 1024px)');
   const reduced = matchMedia('(prefers-reduced-motion: reduce)');
-  const visH = () => (wide.matches ? VIS : H);
-  const cam = (k: number) => cameraFor(k, cities, legs, visH());
+  const camAt = (k: number) => cameraAt(project(cities[k - 1]));
   const restAngle = (k: number) =>
     k === 1 ? heading(legs[0][0], legs[0][1]) : heading(legs[k - 2].at(-2)!, legs[k - 2].at(-1)!);
+  // Earlier legs 55%, the leg just flown 100%, future legs hidden.
   const legOpacity = (k: number, i: number) => (i < k - 2 ? 0.55 : i === k - 2 ? 1 : 0);
   const pct = (km: number) => (km / total) * 100;
+  const valueText = (k: number) => `${cities[k - 1].city}, ${cities[k - 1].km.toLocaleString('en-CA')} km`;
 
-  let step = Number(root.dataset.step) || 1;
+  let step = 1;
   let anim = 0;
   let planeAngle = restAngle(step);
 
   function place(el: HTMLElement, [x, y]: Pt) {
     el.style.left = `${(x / W) * 100}%`;
-    el.style.top = `${(y / H) * 100}%`;
+    el.style.top = `${(y / VIEW_H) * 100}%`;
   }
 
   function drawFrame(c: Camera, planeAt: Pt, angle: number) {
-    world.style.transform = `translate(${(c.tx / W) * 100}%, ${(c.ty / H) * 100}%) scale(${c.s})`;
+    world.style.transform = `translate(${(c.tx / W) * 100}%, ${(c.ty / 520) * 100}%) scale(${c.s})`;
     cities.forEach((city, i) => {
       const p = toScreen(project(city), c);
       place(pins[i], p);
@@ -65,41 +62,24 @@ export function initJourney(root: HTMLElement) {
 
   function setMarkers(k: number) {
     cities.forEach((_, i) => {
-      const state = i === k - 1 ? 'current' : i < k - 1 ? 'visited' : 'future';
-      for (const el of [pins[i], labels[i]]) {
-        el.classList.remove('current', 'visited', 'future');
-        el.classList.add(state);
-      }
-      stops[i].classList.toggle('reached', i <= k - 1);
+      pins[i].classList.toggle('current', i === k - 1);
+      labels[i].classList.toggle('current', i === k - 1);
+      stops[i].classList.toggle('reached', i < k - 1);
       stops[i].classList.toggle('current', i === k - 1);
     });
   }
 
-  function setHud(k: number) {
-    const c = cities[k - 1];
-    distance.textContent = formatKm(c.km);
-    nowLabel.textContent = k === last ? 'Current base' : 'Now at';
-    now.textContent = c.city.toUpperCase();
-    now.classList.toggle('base', k === last);
-    hint.textContent = k === 1 ? 'Slide to take off →' : k === last ? 'Tap to replay ↺' : 'Slide to continue →';
-    track.setAttribute('aria-valuenow', String(k));
-    track.setAttribute('aria-valuetext', `${c.city}, ${c.km.toLocaleString('en-CA')} km`);
-  }
-
-  function setThumb(km: number, lift: number, pitch: number) {
+  function setSlider(km: number) {
     thumb.style.left = `${pct(km)}%`;
     progress.style.width = `${pct(km)}%`;
-    thumb.style.setProperty('--lift', String(lift));
-    thumb.style.setProperty('--pitch', String(pitch));
   }
 
   function renderStatic(k: number) {
     planeAngle = restAngle(k);
-    drawFrame(cam(k), project(cities[k - 1]), planeAngle);
+    drawFrame(camAt(k), project(cities[k - 1]), planeAngle);
     paths.forEach((p, i) => (p.style.opacity = String(legOpacity(k, i))));
     setMarkers(k);
-    setHud(k);
-    setThumb(cities[k - 1].km, LIFT[k - 1], PITCH[k - 1]);
+    setSlider(cities[k - 1].km);
   }
 
   function goTo(target: number, { replay = false } = {}) {
@@ -107,14 +87,15 @@ export function initJourney(root: HTMLElement) {
     if (anim) {
       cancelAnimationFrame(anim);
       anim = 0;
+      plane.style.opacity = '';
       renderStatic(step);
     }
     if (target === step) return;
     const from = step;
     step = target;
-    live.textContent = `${cities[target - 1].city}, ${cities[target - 1].km.toLocaleString('en-CA')} km flown`;
+    live.textContent = `${valueText(target)} flown`;
     track.setAttribute('aria-valuenow', String(target));
-    track.setAttribute('aria-valuetext', `${cities[target - 1].city}, ${cities[target - 1].km.toLocaleString('en-CA')} km`);
+    track.setAttribute('aria-valuetext', valueText(target));
 
     if (reduced.matches) {
       renderStatic(target);
@@ -122,7 +103,7 @@ export function initJourney(root: HTMLElement) {
       return;
     }
 
-    // Plane route: concatenated legs between the two stops (reversed when going back).
+    // Plane route: the legs between the two stops (reversed when going back).
     const forward = target > from;
     let route: Pt[] = [];
     if (!replay) {
@@ -131,31 +112,31 @@ export function initJourney(root: HTMLElement) {
       if (!forward) route.reverse();
     }
 
-    const c0 = cam(from);
-    const c1 = cam(target);
+    const c0 = camAt(from);
+    const c1 = camAt(target);
     const o0 = paths.map((_, i) => legOpacity(from, i));
     const o1 = paths.map((_, i) => legOpacity(target, i));
     const km0 = cities[from - 1].km;
     const km1 = cities[target - 1].km;
     const angle0 = planeAngle;
-    const duration = replay ? 1200 : from === 1 && target === 2 ? 1600 : 1300;
+    const hops = Math.abs(target - from);
+    const duration = replay ? 1400 : Math.min(3200, 1500 + 350 * (hops - 1));
 
-    // Leaving: the origin turns into a visited stop; hide stops beyond the target when going back.
-    setMarkers(Math.min(from, target));
-    if (forward) {
-      pins[from - 1].classList.replace('current', 'visited');
-      labels[from - 1].classList.replace('current', 'visited');
-    }
+    // Leaving: the origin becomes a plain white stop; the target lights up on arrival.
+    setMarkers(0);
+    for (let i = 0; i < Math.min(from, target) - 1; i++) stops[i].classList.add('reached');
 
     const t0 = performance.now();
     const tick = (now: number) => {
       const raw = Math.min(1, (now - t0) / duration);
       const t = ease(raw);
-      const c = { s: lerp(c0.s, c1.s, t), tx: lerp(c0.tx, c1.tx, t), ty: lerp(c0.ty, c1.ty, t) };
 
       let at: Pt;
       let angle: number;
+      let c: Camera;
       if (replay) {
+        // Pan back to the start at constant zoom while the plane fades out and in.
+        c = lerpCam(c0, c1, t);
         at = project(raw < 0.5 ? cities[from - 1] : cities[target - 1]);
         angle = raw < 0.5 ? angle0 : restAngle(target);
         plane.style.opacity = String(Math.abs(1 - raw * 2));
@@ -164,22 +145,15 @@ export function initJourney(root: HTMLElement) {
         const n = Math.min(route.length - 2, Math.floor(f));
         const u = f - n;
         at = [lerp(route[n][0], route[n + 1][0], u), lerp(route[n][1], route[n + 1][1], u)];
+        // Camera follows the plane at a constant zoom; it starts and ends centred on a city.
+        c = cameraAt(at);
         // Heading follows the route; ease in from the previous heading by the shortest turn.
-        const sc = (p: Pt) => toScreen(p, c);
-        const pathAngle = heading(sc(route[n]), sc(route[n + 1]));
-        const blend = Math.min(1, raw / 0.2);
-        angle = angle0 + shortestDelta(angle0, pathAngle) * blend;
+        const pathAngle = heading(route[n], route[n + 1]);
+        angle = angle0 + shortestDelta(angle0, pathAngle) * Math.min(1, raw / 0.2);
       }
       drawFrame(c, at, angle);
       paths.forEach((p, i) => (p.style.opacity = String(lerp(o0[i], o1[i], t))));
-      const km = lerp(km0, km1, t);
-      distance.textContent = formatKm(Math.round(km));
-      const kmPos = km;
-      const segFrac = (target - 1 - (from - 1)) * t + (from - 1);
-      const lo = Math.floor(segFrac);
-      const hi = Math.min(last - 1, lo + 1);
-      const fr = segFrac - lo;
-      setThumb(kmPos, lerp(LIFT[lo], LIFT[hi], fr), lerp(PITCH[lo], PITCH[hi], fr));
+      setSlider(lerp(km0, km1, t));
 
       if (raw < 1) {
         anim = requestAnimationFrame(tick);
@@ -192,7 +166,7 @@ export function initJourney(root: HTMLElement) {
     anim = requestAnimationFrame(tick);
   }
 
-  // ---- Slider input: drag the thumb, click a stop or the track, arrow keys ----
+  // ---- Slider input: drag the plane, tap a stop code or the bar, arrow keys ----
   const nearestStop = (clientX: number) => {
     const r = track.getBoundingClientRect();
     const km = ((clientX - r.left) / r.width) * total;
@@ -220,17 +194,16 @@ export function initJourney(root: HTMLElement) {
       if (k !== step) goTo(k);
     }
   });
-  const end = (e: PointerEvent) => {
+  track.addEventListener('pointerup', (e) => {
     if (!dragging) return;
     dragging = false;
     if (moved) return;
-    // A tap: on the last step it replays; otherwise jump to the tapped stop
-    // (or advance one step when tapping the thumb itself).
+    // A tap: after YYZ it replays from SEL; otherwise fly to the tapped stop
+    // (or one step on when tapping the current one).
     if (step === last) return goTo(1, { replay: true });
     const k = nearestStop(e.clientX);
     goTo(k === step ? step + 1 : k);
-  };
-  track.addEventListener('pointerup', end);
+  });
   track.addEventListener('pointercancel', () => (dragging = false));
 
   track.addEventListener('keydown', (e) => {
@@ -240,12 +213,12 @@ export function initJourney(root: HTMLElement) {
     if (e.key in keys) {
       e.preventDefault();
       goTo(keys[e.key]);
-    } else if ((e.key === 'Enter' || e.key === ' ') && step === last) {
+    } else if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
-      goTo(1, { replay: true });
+      if (step === last) goTo(1, { replay: true });
+      else goTo(step + 1);
     }
   });
 
-  wide.addEventListener('change', () => !anim && renderStatic(step));
   renderStatic(step);
 }

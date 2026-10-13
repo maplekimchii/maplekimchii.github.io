@@ -1,6 +1,6 @@
 # Sean Kim — portfolio
 
-Static site built with Astro 7 and TypeScript. Plain CSS with custom properties. The only client-side scripts are the journey map, the bag carousel, the split-flap intro and the mobile menu.
+Single-page static site built with Astro 7 and TypeScript, from the Figma page "Simplified (v2)". Plain CSS with custom properties. The only client-side scripts are the journey map, the bag carousel, the split-flap intro and the mobile menu. Besides the home page there are project case studies (`/projects/<id>`) and, once a post is published, `/thoughts`. The old `/about`, `/experience` and `/projects` URLs redirect to sections of the home page.
 
 ## Run
 
@@ -9,7 +9,7 @@ npm install
 npm run dev        # http://localhost:4321 — draft posts are visible here
 npm run build      # type-checks, then builds static files into dist/
 npm run preview    # serves dist/
-npm test           # journey-map geometry checks (projection, camera bounds)
+npm test           # journey-map geometry checks (Figma framing, camera bounds)
 ```
 
 Node 22 or newer.
@@ -20,13 +20,12 @@ Everything a visitor reads lives in `src/content/`:
 
 | File | What it holds |
 |---|---|
-| `profile.json` | Name, headline, intro, school, program, graduation, average, nationality, availability line, email, LinkedIn, GitHub, résumé path |
-| `experience.json` | Roles. `featured: true` puts a role on Home (keep exactly 3). `end: null` means "Present". `type: ""` hides the type. |
-| `projects.json` | Projects. `featured: true` puts a project on Home (keep exactly 3). A `caseStudy` block creates `/projects/<id>`. `thumbnail` takes an image path in `public/`. |
-| `skills.json` | Skill groups for `/experience`, plus `featured` (8 or fewer) for Home |
+| `profile.json` | Name, headline, the three About paragraphs (`bio`), availability line, email, LinkedIn, GitHub, résumé path |
+| `experience.json` | Roles, newest first. `end: null` means "Present". `tags` is the blue line under each role. `type: "Student club"` puts a role under "Leadership & extracurricular". |
+| `projects.json` | Projects, all shown under Selected work. A `caseStudy` block creates `/projects/<id>` and makes the row a link. |
 | `cities.json` | The 7 journey stops (order, map coordinates, distances). |
-| `interests.json` | Up to 6 bags. `blurb` is optional. |
-| `posts/*.md` | Thoughts posts. `draft: true` keeps a post out of production builds. The Thoughts nav item, route and Home section appear only when at least one post is published. |
+| `interests.json` | Up to 6 bags. `blurb` is optional. `photo` takes an image path in `public/`; `null` shows the photo placeholder. |
+| `posts/*.md` | Thoughts posts. `draft: true` keeps a post out of production builds. The Thoughts nav links, route and home section appear only when at least one post is published. The home page shows the 2 newest. |
 
 The files are validated against the schema in `src/content.config.ts` when you build.
 

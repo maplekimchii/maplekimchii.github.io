@@ -16,24 +16,24 @@ const { rows } = Astro.props;
 </div>
 
 <script>
-  // One-time flip-in: each tile cycles a few characters then settles. Under 1.2s total.
+  // One-time flip-in: each tile cycles random letters, fast at first, then slows (ease-out) onto its letter. About 2s total.
   const tiles = document.querySelectorAll<HTMLElement>('.split-flap .flap');
   const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   if (!reduce) {
-    const glyphs = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    const glyphs = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    const cycles = 20;
     tiles.forEach((tile, i) => {
       const el = tile.querySelector<HTMLElement>('.char');
       const final = tile.dataset.char ?? '';
       if (!el || final === ' ') return;
       let n = 0;
-      const cycles = 6;
-      setTimeout(() => {
-        const id = setInterval(() => {
-          n += 1;
-          el.textContent = n >= cycles ? final : glyphs[Math.floor(Math.random() * glyphs.length)];
-          if (n >= cycles) clearInterval(id);
-        }, 70);
-      }, i * 40);
+      const step = () => {
+        n += 1;
+        el.textContent = n >= cycles ? final : glyphs[Math.floor(Math.random() * glyphs.length)];
+        // 35ms per flip at the start, easing up to ~215ms for the last ones.
+        if (n < cycles) setTimeout(step, 35 + 180 * (n / cycles) ** 3);
+      };
+      setTimeout(step, i * 40);
     });
   }
 </script>
