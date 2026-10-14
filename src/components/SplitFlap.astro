@@ -16,24 +16,39 @@ const { rows } = Astro.props;
 </div>
 
 <script>
-  // One-time flip-in: each tile cycles random letters, fast at first, then slows (ease-out) onto its letter. About 2s total.
+  // Flip-in on load: each tile cycles random characters, fast at first, then slows (ease-out)
+  // onto its letter. About 2s total. Clicking a tile "ruffles" it: a shorter shuffle plus a wobble.
   const tiles = document.querySelectorAll<HTMLElement>('.split-flap .flap');
   const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const glyphs = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  const busy = new WeakSet<HTMLElement>();
+
+  const shuffle = (tile: HTMLElement, cycles: number, delay = 0) => {
+    const el = tile.querySelector<HTMLElement>('.char');
+    const final = tile.dataset.char ?? '';
+    if (!el || busy.has(tile)) return;
+    busy.add(tile);
+    let n = 0;
+    const step = () => {
+      n += 1;
+      el.textContent = n >= cycles ? final : glyphs[Math.floor(Math.random() * glyphs.length)];
+      // 35ms per flip at the start, easing up to ~215ms for the last ones.
+      if (n < cycles) setTimeout(step, 35 + 180 * (n / cycles) ** 3);
+      else busy.delete(tile);
+    };
+    setTimeout(step, delay);
+  };
+
   if (!reduce) {
-    const glyphs = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-    const cycles = 20;
     tiles.forEach((tile, i) => {
-      const el = tile.querySelector<HTMLElement>('.char');
-      const final = tile.dataset.char ?? '';
-      if (!el || final === ' ') return;
-      let n = 0;
-      const step = () => {
-        n += 1;
-        el.textContent = n >= cycles ? final : glyphs[Math.floor(Math.random() * glyphs.length)];
-        // 35ms per flip at the start, easing up to ~215ms for the last ones.
-        if (n < cycles) setTimeout(step, 35 + 180 * (n / cycles) ** 3);
-      };
-      setTimeout(step, i * 40);
+      if (tile.dataset.char !== ' ') shuffle(tile, 20, i * 40);
+      tile.addEventListener('click', () => {
+        if (busy.has(tile)) return;
+        tile.classList.remove('ruffle');
+        void tile.offsetWidth; // restart the wobble animation
+        tile.classList.add('ruffle');
+        shuffle(tile, 12);
+      });
     });
   }
 </script>

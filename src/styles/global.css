@@ -155,3 +155,7 @@ button { font: inherit; color: inherit; }
     scroll-behavior: auto !important;
   }
 }
+
+/* No blinking text caret on page text; only real text fields show one. */
+html { caret-color: transparent; }
+input, textarea, [contenteditable] { caret-color: auto; }

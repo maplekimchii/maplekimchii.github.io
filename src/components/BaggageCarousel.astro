@@ -3,7 +3,6 @@
 // in a loop. The bags are rendered twice so the loop is seamless; the second set is
 // hidden from assistive tech and the tab order.
 import Luggage from './Luggage.astro';
-import ImageIcon from '../icons/image.svg';
 import { getInterests } from '../lib/content';
 
 const interests = await getInterests();
@@ -25,11 +24,7 @@ const cardBottom = { suitcase: 104, duffel: 160, backpack: 106, briefcase: 161 }
                 <p class="kicker">Interest</p>
                 <p class="title">{it.data.title}</p>
                 {it.data.blurb && <p class="blurb">{it.data.blurb}</p>}
-                {it.data.photo ? (
-                  <img class="photo" src={it.data.photo} alt="" width="170" height="112" loading="lazy" />
-                ) : (
-                  <span class="photo placeholder" aria-hidden="true"><ImageIcon /><span>PHOTO</span></span>
-                )}
+                {it.data.photo && <img class="photo" src={it.data.photo} alt="" width="170" height="112" loading="lazy" />}
               </div>
               <button
                 class="bag-btn"
@@ -65,14 +60,15 @@ const cardBottom = { suitcase: 104, duffel: 160, backpack: 106, briefcase: 161 }
       if (e.key === 'Escape' && openIndex !== null) setOpen(null);
     });
 
-    // ---- Slow auto-scroll; pauses on hover, focus, an open bag, or after the visitor scrolls ----
+    // ---- Slow auto-scroll; pauses while the mouse is on a bag, on focus, an open bag, or after the visitor scrolls ----
     const reduce = matchMedia('(prefers-reduced-motion: reduce)');
-    const SPEED = 24; // px per second
+    const SPEED = 40; // px per second
     let hover = false;
     let focus = false;
     let visible = false;
     let idleUntil = 0;
-    root.addEventListener('pointerenter', (e) => (hover = e.pointerType === 'mouse'));
+    // Only the painted bag shapes take the pointer (see .bag-btn styles), so this is true on a bag only.
+    root.addEventListener('pointerover', (e) => (hover = e.pointerType === 'mouse' && !!(e.target as Element).closest('.bag-btn')));
     root.addEventListener('pointerleave', () => (hover = false));
     root.addEventListener('focusin', () => (focus = true));
     root.addEventListener('focusout', (e) => (focus = root.contains(e.relatedTarget as Node)));
@@ -161,6 +157,10 @@ const cardBottom = { suitcase: 104, duffel: 160, backpack: 106, briefcase: 161 }
     cursor: pointer;
   }
   .bag-btn:focus-visible { outline-offset: -4px; }
+  /* The button fills the slot, but only the bag artwork and its tag are clickable and hoverable. */
+  .bag-btn { pointer-events: none; }
+  .bag-btn :global(.art *) { pointer-events: visiblePainted; }
+  .bag-btn :global(.tag) { pointer-events: auto; }
   .bag-btn[aria-expanded='true'] :global(.bag) { transform: translateY(8px); }
 
   /* Bottom-anchored: the card grows upward from just above its bag and never covers it. */
@@ -202,19 +202,5 @@ const cardBottom = { suitcase: 104, duffel: 160, backpack: 106, briefcase: 161 }
     height: 112px;
     border-radius: 4px;
     object-fit: cover;
-  }
-  .placeholder {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    background: var(--silver-100);
-    border: 1px dashed color-mix(in srgb, var(--muted) 50%, transparent);
-    font-family: var(--font-mono);
-    font-weight: 500;
-    font-size: 9px;
-    letter-spacing: 0.1em;
-    color: var(--muted);
   }
 </style>

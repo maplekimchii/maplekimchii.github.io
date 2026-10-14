@@ -1,5 +1,5 @@
-// Interactive compact journey map. Only the slider changes stops (drag, tap a stop
-// code, arrow keys); the map itself has no pointer handlers, so it never blocks
+// Interactive compact journey map. Only the slider changes stops, forward one at a
+// time (tap the next stop code, Right/Up, Enter, Space); the map itself has no pointer handlers, so it never blocks
 // page scrolling. The camera stays at a fixed zoom and follows the plane.
 import {
   VIEW_H, W, cameraAt, heading, legSamples, project, shortestDelta, toScreen,
@@ -166,7 +166,9 @@ export function initJourney(root: HTMLElement) {
     anim = requestAnimationFrame(tick);
   }
 
-  // ---- Slider input: drag the plane, tap a stop code or the bar, arrow keys ----
+  // ---- Slider input: forward one stop at a time only ----
+  // A tap on the next stop's code (or SEL once at YYZ, which replays) moves on; Right/Up,
+  // Enter and Space do the same. Everything else, and any input mid-flight, is ignored.
   const nearestStop = (clientX: number) => {
     const r = track.getBoundingClientRect();
     const km = ((clientX - r.left) / r.width) * total;
@@ -176,47 +178,22 @@ export function initJourney(root: HTMLElement) {
     });
     return best + 1;
   };
+  const next = () => (step === last ? 1 : step + 1);
+  const advance = () => {
+    if (anim) return;
+    if (step === last) goTo(1, { replay: true });
+    else goTo(step + 1);
+  };
 
-  let dragging = false;
-  let startX = 0;
-  let moved = false;
-  track.addEventListener('pointerdown', (e) => {
-    dragging = true;
-    moved = false;
-    startX = e.clientX;
-    track.setPointerCapture(e.pointerId);
+  track.addEventListener('click', (e) => {
+    if (nearestStop(e.clientX) === next()) advance();
   });
-  track.addEventListener('pointermove', (e) => {
-    if (!dragging) return;
-    if (Math.abs(e.clientX - startX) > 6) moved = true;
-    if (moved) {
-      const k = nearestStop(e.clientX);
-      if (k !== step) goTo(k);
-    }
-  });
-  track.addEventListener('pointerup', (e) => {
-    if (!dragging) return;
-    dragging = false;
-    if (moved) return;
-    // A tap: after YYZ it replays from SEL; otherwise fly to the tapped stop
-    // (or one step on when tapping the current one).
-    if (step === last) return goTo(1, { replay: true });
-    const k = nearestStop(e.clientX);
-    goTo(k === step ? step + 1 : k);
-  });
-  track.addEventListener('pointercancel', () => (dragging = false));
-
   track.addEventListener('keydown', (e) => {
-    const keys: Record<string, number> = {
-      ArrowRight: step + 1, ArrowUp: step + 1, ArrowLeft: step - 1, ArrowDown: step - 1, Home: 1, End: last,
-    };
-    if (e.key in keys) {
+    if (['ArrowRight', 'ArrowUp', 'Enter', ' '].includes(e.key)) {
       e.preventDefault();
-      goTo(keys[e.key]);
-    } else if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault();
-      if (step === last) goTo(1, { replay: true });
-      else goTo(step + 1);
+      advance();
+    } else if (['ArrowLeft', 'ArrowDown', 'Home', 'End', 'PageUp', 'PageDown'].includes(e.key)) {
+      e.preventDefault(); // a slider would normally move on these; this one only goes forward
     }
   });
 

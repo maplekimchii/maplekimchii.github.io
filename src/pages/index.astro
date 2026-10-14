@@ -15,6 +15,25 @@ const posts = (await getPosts()).slice(0, 2);
 const base = (await getCities()).at(-1)!;
 const coord = (v: number, pos: string, neg: string) => `${Math.abs(v).toFixed(2)}° ${v >= 0 ? pos : neg}`;
 const newTab = '(opens in a new tab)';
+
+// Easter egg: highlighting the coordinates plays a random Drake preview (30s clips from Apple's
+// public iTunes Search API; Spotify's preview API needs a login). Fetched at build time, so a
+// failed fetch just leaves the egg out.
+const songs = ['National Treasures', 'Hotline Bling', 'One Dance', 'Passionfruit', 'Headlines', 'Janice STFU', 'Nokia'];
+type Track = { artistName: string; trackName: string; previewUrl?: string; artworkUrl100: string; trackViewUrl: string };
+const drake = (
+  await Promise.all(
+    songs.map((song) =>
+      fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(`drake ${song}`)}&entity=song&limit=10&country=US`)
+        .then((r) => r.json())
+        .then((d: { results: Track[] }) => {
+          const t = d.results.find((t) => t.artistName === 'Drake' && t.previewUrl && t.trackName.toLowerCase().startsWith(song.toLowerCase()));
+          return t && { url: t.previewUrl!, title: t.trackName, art: t.artworkUrl100.replace('100x100', '160x160'), link: t.trackViewUrl };
+        })
+        .catch(() => undefined),
+    ),
+  )
+).filter((t) => !!t);
 ---
 
 <Base
@@ -27,7 +46,7 @@ const newTab = '(opens in a new tab)';
     <SplitFlap rows={['SEAN', 'KIM ']} />
     <p class="headline">{profile.headline}</p>
     <div class="meta">
-      <p>{coord(base.data.lat, 'N', 'S')}, {coord(base.data.lon, 'E', 'W')}</p>
+      <p class="coords" data-tracks={JSON.stringify(drake)}>{coord(base.data.lat, 'N', 'S')}, {coord(base.data.lon, 'E', 'W')}<span class="eq" aria-hidden="true"><i></i><i></i><i></i></span></p>
       <p class="status"><span class="dot" aria-hidden="true"></span>{profile.availability}</p>
     </div>
     <ul class="hero-links">
@@ -107,7 +126,72 @@ const newTab = '(opens in a new tab)';
       <p class="see-all"><a href="/thoughts">All thoughts →</a></p>
     </section>
   )}
+
+  {drake.length > 0 && (
+    <aside class="player" aria-label="Now playing" hidden>
+      <img class="art" src="" alt="" width="48" height="48" />
+      <div class="info">
+        <p class="why">You highlighted {base.data.city.split(',')[0]}</p>
+        <p class="song" aria-live="polite"></p>
+        <p class="artist">Drake · preview</p>
+        <span class="bar"><span class="fill"></span></span>
+      </div>
+      <a class="apple" href="" target="_blank" rel="noopener" aria-label="Open in Apple Music (opens in a new tab)">↗</a>
+      <button class="stop" type="button" aria-label="Stop">×</button>
+    </aside>
+  )}
 </Base>
+
+<script>
+  type Song = { url: string; title: string; art: string; link: string };
+  const coords = document.querySelector<HTMLElement>('.coords');
+  const player = document.querySelector<HTMLElement>('.player');
+  const tracks: Song[] = JSON.parse(coords?.dataset.tracks ?? '[]');
+  if (coords && player && tracks.length) {
+    const audio = new Audio();
+    audio.volume = 0.6;
+    const fill = player.querySelector<HTMLElement>('.fill')!;
+    let played = false; // one song per highlight
+    let pending = false;
+
+    const stop = () => {
+      played = false;
+      audio.pause();
+      coords.classList.remove('playing');
+      player.hidden = true;
+    };
+    const check = () => {
+      const sel = getSelection();
+      if (!sel || sel.isCollapsed || !sel.containsNode(coords, true)) return stop(); // highlight gone: stop right away
+      if (played || pending) return;
+      pending = true;
+      const song = tracks[Math.floor(Math.random() * tracks.length)];
+      audio.src = song.url;
+      // Show the player straight away (the clip may take a moment to buffer).
+      played = true;
+      coords.classList.add('playing');
+      player.querySelector<HTMLImageElement>('.art')!.src = song.art;
+      player.querySelector('.song')!.textContent = song.title;
+      player.querySelector<HTMLAnchorElement>('.apple')!.href = song.link;
+      fill.style.width = '0%';
+      player.hidden = false;
+      // Some browsers only allow play() right after a tap or click: on refusal, undo so pointerup retries.
+      audio
+        .play()
+        .catch((e: DOMException) => {
+          if (e.name === 'NotAllowedError') stop();
+        })
+        .finally(() => (pending = false));
+    };
+    document.addEventListener('selectionchange', check);
+    document.addEventListener('pointerup', () => setTimeout(check));
+    audio.addEventListener('timeupdate', () => (fill.style.width = `${(audio.currentTime / (audio.duration || 30)) * 100}%`));
+    audio.addEventListener('ended', () => getSelection()?.removeAllRanges());
+    // Clicking the player must not clear the highlight (which would stop the song).
+    player.addEventListener('mousedown', (e) => e.preventDefault());
+    player.querySelector('.stop')!.addEventListener('click', () => getSelection()?.removeAllRanges());
+  }
+</script>
 
 <style>
   .hero {
@@ -140,6 +224,58 @@ const newTab = '(opens in a new tab)';
     color: var(--muted);
   }
   .status { display: flex; align-items: center; gap: 8px; color: var(--ink); }
+  /* Easter egg: a flap-yellow highlight and dancing bars on the coordinates while a song plays */
+  .coords.playing::selection { background: var(--flap-yellow); color: var(--ink); }
+  .eq { display: none; align-items: flex-end; gap: 2px; height: 11px; margin-left: 8px; vertical-align: -1px; user-select: none; }
+  .coords.playing .eq { display: inline-flex; }
+  .eq i { width: 3px; height: 100%; background: var(--ink); transform-origin: bottom; animation: eq 700ms ease-in-out infinite alternate; }
+  .eq i:nth-child(2) { animation-delay: -250ms; }
+  .eq i:nth-child(3) { animation-delay: -500ms; }
+  @keyframes eq { from { transform: scaleY(0.25); } to { transform: scaleY(1); } }
+  @media (prefers-reduced-motion: reduce) { .eq i { animation: none; transform: scaleY(0.6); } }
+
+  .player {
+    position: fixed;
+    left: 24px;
+    bottom: 24px;
+    z-index: 40;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: min(320px, 100vw - 2 * var(--gutter));
+    padding: 10px 12px 10px 10px;
+    background: var(--ink);
+    color: var(--white);
+    border-radius: 10px;
+    box-shadow: 0 8px 24px rgb(14 42 82 / 0.25);
+    animation: player-in 300ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  .player[hidden] { display: none; }
+  @keyframes player-in { from { opacity: 0; transform: translateY(12px); } }
+  .player .art { flex: none; width: 48px; height: 48px; border-radius: 4px; background: var(--muted); }
+  .player .info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; line-height: 1.2; }
+  .why { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--flap-yellow); }
+  .song { font-weight: 700; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .artist { font-size: 12px; color: var(--silver-200); }
+  .bar { height: 3px; margin-top: 4px; border-radius: 2px; background: rgb(255 255 255 / 0.2); overflow: hidden; }
+  .fill { display: block; width: 0; height: 100%; background: var(--flap-yellow); transition: width 250ms linear; }
+  .apple, .stop {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: rgb(255 255 255 / 0.1);
+    color: var(--white);
+    font-family: var(--font-mono);
+    font-size: 15px;
+    line-height: 1;
+    cursor: pointer;
+  }
+  .apple:hover, .stop:hover { background: rgb(255 255 255 / 0.2); text-decoration: none; }
   .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--flap-yellow); }
   .hero-links {
     display: flex;
@@ -153,6 +289,7 @@ const newTab = '(opens in a new tab)';
 
   /* Sections: "01  SELECTED WORK" head, then hairline-separated rows */
   .section { padding-block: 0 120px; }
+  .section:last-child { padding-bottom: 64px; }
   .section > * + * { margin-top: 0; }
   .section-head {
     display: flex;
@@ -217,11 +354,13 @@ const newTab = '(opens in a new tab)';
     .about-body { grid-template-columns: minmax(0, 1fr); }
   }
   @media (max-width: 767px) {
+    .player { left: var(--gutter); bottom: 16px; }
     .hero { gap: 28px; padding-block: 40px 80px; }
     .headline { font-size: 36px; }
     .meta { flex-direction: column; align-items: flex-start; }
     .hero-links { gap: 12px 20px; }
     .section { padding-bottom: 80px; }
+    .section:last-child { padding-bottom: 40px; }
     .exp { flex-direction: column; gap: 8px; padding-block: 18px; }
     .when { flex-basis: auto; }
     .sub-head { padding-top: 40px; }

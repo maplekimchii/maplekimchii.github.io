@@ -3,8 +3,10 @@ import { profile } from '../lib/content';
 ---
 
 <footer class="container site-footer">
-  <p class="label">Say hello</p>
-  <a class="email" href={`mailto:${profile.email}`}>{profile.email}</a>
+  <div class="hello">
+    <p class="label">Let’s keep in touch!</p>
+    <a class="email" href={`mailto:${profile.email}`}>{profile.email}</a>
+  </div>
   <div class="row">
     <p>© 2026 {profile.name}</p>
     <p>Thanks for flying by.</p>
@@ -16,20 +18,19 @@ import { profile } from '../lib/content';
     display: flex;
     flex-direction: column;
     align-items: flex-start;
-    gap: 56px;
-    padding-top: 100px;
+    gap: 48px;
+    padding-top: 40px;
     padding-bottom: 56px;
   }
+  .hello { display: flex; flex-direction: column; gap: 8px; }
   .label {
-    font-family: var(--font-mono);
-    font-size: 12px;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    color: var(--muted);
+    font-weight: 800;
+    font-size: 28px;
+    line-height: normal;
   }
   .email {
-    font-weight: 800;
-    font-size: 56px;
+    font-weight: 500;
+    font-size: 18px;
     line-height: normal;
     color: var(--ink);
     text-decoration: underline;
@@ -46,7 +47,8 @@ import { profile } from '../lib/content';
     color: var(--muted);
   }
   @media (max-width: 767px) {
-    .site-footer { gap: 32px; padding-top: 72px; }
-    .email { font-size: 28px; }
+    .site-footer { gap: 32px; padding-top: 32px; }
+    .label { font-size: 22px; }
+    .email { font-size: 16px; }
   }
 </style>
